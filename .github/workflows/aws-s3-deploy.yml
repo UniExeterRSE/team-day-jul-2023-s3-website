@@ -1,0 +1,41 @@
+# Deploy static content to S3 bucket
+name: Deploy to S3 bucket
+
+on:
+  # Runs when a new release is published
+  release:
+    types: [published]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# These permissions are needed to interact with GitHub's OIDC Token endpoint.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Upload to Amazon S3
+    runs-on: ubuntu-latest   
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Get release tag
+      # The release tag isn't used in this action.
+      # This is just an example of how to access information about
+      # the release.
+      run: echo "Tag name ${{ github.ref_name }} GITHUB_REF ${GITHUB_REF}"
+    - name: Configure AWS credentials from Test account
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        # Get role ARN from AWS IAM console
+        # The role must trust the GitHub OIDC and have this repo as "sub"
+        # Permisions, for S3 sync, are: PutObject, PutObjectAcl, and ListBucket
+        role-to-assume: arn:aws:iam::512081954320:role/github-aws-Role-4R85F68GEAIS
+        aws-region: us-east-1
+        role-session-name: MySessionName
+    - name: Copy files to the test website with the AWS CLI
+      # Bucket must exist and be configured as a website.
+      run: |
+        aws s3 sync ./static s3://demo1.wetoffice.com/
